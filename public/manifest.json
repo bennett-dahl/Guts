@@ -1,0 +1,9 @@
+{
+  "name": "Guts — Diet & meals",
+  "short_name": "Guts",
+  "description": "Gut-friendly meal planning, recipes, and grocery handoff",
+  "start_url": "/today",
+  "display": "standalone",
+  "background_color": "#fafaf9",
+  "theme_color": "#047857"
+}

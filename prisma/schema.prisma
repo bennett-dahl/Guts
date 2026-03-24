@@ -1,0 +1,201 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Auth.js / NextAuth models
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  onboardingDone Boolean  @default(false)
+
+  accounts       Account[]
+  sessions       Session[]
+  profile        IdealDietProfile?
+  recipes        Recipe[]
+  mealPlans      MealPlan[]
+  shoppingLists  ShoppingList[]
+  favorites      Favorite[]
+  inbox          RecipeInbox[]
+  instacartCache InstacartLinkCache[]
+  searchCache    RecipeSearchCache[]
+  mealLogs       MealCompletionLog[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model IdealDietProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// JSON string: plantWeeklyGoal, countHerbsAsPlants, fiberDailyGoal, rampMode, minLegumesWeek, etc.
+  settings String @default("{}")
+}
+
+model Recipe {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title          String
+  description    String?
+  sourceUrl      String?
+  imageUrl       String?
+  servings       Int      @default(4)
+  difficulty     Int      @default(2)
+  activeTimeMin  Int?
+  /// JSON string[] tags
+  tags           String   @default("[]")
+  instructions   String
+  /// JSON string[] plant names for diversity tracking
+  plantsUsed     String   @default("[]")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  ingredients   RecipeIngredient[]
+  plannedMeals  PlannedMeal[]
+  favorites     Favorite[]
+  mealLogs      MealCompletionLog[]
+}
+
+model RecipeIngredient {
+  id        String  @id @default(cuid())
+  recipeId  String
+  recipe    Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  name      String
+  quantity  Float?
+  unit      String?
+  sortOrder Int     @default(0)
+}
+
+model MealPlan {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weekStart DateTime
+  meals     PlannedMeal[]
+}
+
+model PlannedMeal {
+  id         String   @id @default(cuid())
+  mealPlanId String
+  mealPlan   MealPlan @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  date       DateTime
+  slot       String
+  recipeId   String?
+  recipe     Recipe?  @relation(fields: [recipeId], references: [id], onDelete: SetNull)
+}
+
+model ShoppingList {
+  id         String @id @default(cuid())
+  userId     String
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title      String
+  mealPlanId String?
+  items      ShoppingListItem[]
+  createdAt  DateTime @default(now())
+}
+
+model ShoppingListItem {
+  id        String  @id @default(cuid())
+  listId    String
+  list      ShoppingList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  name      String
+  quantity  Float?
+  unit      String?
+  category  String?
+  checked   Boolean @default(false)
+  sortOrder Int     @default(0)
+}
+
+model Favorite {
+  id       String @id @default(cuid())
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipeId String
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, recipeId])
+}
+
+model RecipeInbox {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status    String   @default("pending")
+  payload   String
+  source    String
+  createdAt DateTime @default(now())
+}
+
+model RecipeSearchCache {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  queryKey  String
+  response  String
+  expiresAt DateTime
+
+  @@unique([userId, queryKey])
+}
+
+model InstacartLinkCache {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cacheKey  String
+  url       String
+  expiresAt DateTime
+
+  @@unique([userId, cacheKey])
+}
+
+model MealCompletionLog {
+  id       String   @id @default(cuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipeId String?
+  recipe   Recipe?  @relation(fields: [recipeId], references: [id], onDelete: SetNull)
+  date     DateTime @default(now())
+  /// JSON string[] plants attributed
+  plants   String   @default("[]")
+}
