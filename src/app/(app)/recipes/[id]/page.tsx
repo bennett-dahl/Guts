@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { parseStringArray } from "@/lib/json";
 import { FavoriteButton } from "@/components/favorite-button";
-import { InstacartRecipeButton } from "@/components/instacart-button";
+import { RecipeIngredientTools } from "@/components/recipe-ingredient-tools";
 import { LogCookedButton } from "@/components/log-cooked-button";
 import { deleteRecipe } from "@/app/actions";
 
@@ -105,10 +105,16 @@ export default async function RecipeDetailPage({
         </a>
       ) : null}
 
-      <div className="flex flex-col gap-3">
-        <InstacartRecipeButton recipeId={recipe.id} />
-        <LogCookedButton recipeId={recipe.id} />
-      </div>
+      <RecipeIngredientTools
+        recipeTitle={recipe.title}
+        ingredients={recipe.ingredients.map((ing) => ({
+          name: ing.name,
+          quantity: ing.quantity,
+          unit: ing.unit,
+        }))}
+      />
+
+      <LogCookedButton recipeId={recipe.id} />
 
       <form action={deleteRecipe.bind(null, recipe.id)}>
         <button

@@ -2,9 +2,9 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { InstacartListButton } from "@/components/instacart-button";
 import { ListCheck } from "@/components/list-check";
 import { ShoppingListTools } from "@/components/shopping-list-tools";
+import { StockFromListForm } from "@/components/stock-from-list-form";
 
 export default async function ShopListPage({
   params,
@@ -50,7 +50,7 @@ export default async function ShopListPage({
         }))}
       />
 
-      <InstacartListButton listId={list.id} />
+      <StockFromListForm listId={list.id} />
 
       <div className="space-y-6">
         {[...grouped.entries()].map(([category, items]) => (
@@ -80,11 +80,6 @@ export default async function ShopListPage({
         ))}
       </div>
 
-      <p className="text-xs text-zinc-500">
-        <strong>Non-Instacart:</strong> use Copy list or PDF. Kroger, Target,
-        and DoorDash do not offer the same personal cart APIs; Instacart
-        Developer Platform is the supported handoff here.
-      </p>
     </div>
   );
 }

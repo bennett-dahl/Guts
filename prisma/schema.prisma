@@ -27,6 +27,26 @@ model User {
   instacartCache InstacartLinkCache[]
   searchCache    RecipeSearchCache[]
   mealLogs       MealCompletionLog[]
+  pantryItems    PantryItem[]
+}
+
+model PantryItem {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  quantity     Float     @default(1)
+  unit         String?
+  /// pantry | fridge | freezer
+  location     String    @default("pantry")
+  lowThreshold Float?
+  expiresAt    DateTime?
+  sortOrder    Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([userId, location])
 }
 
 model Account {

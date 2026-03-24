@@ -1,6 +1,6 @@
 # Guts — setup instructions
 
-Follow these steps to finish configuration after cloning the repo and running `npm install`. You can do them in order; only **Google OAuth** and **`AUTH_SECRET`** are required for basic sign-in. **Spoonacular** and **Instacart** are optional but unlock discovery and one-tap grocery handoff.
+Follow these steps to finish configuration after cloning the repo and running `npm install`. You can do them in order; only **Google OAuth** and **`AUTH_SECRET`** are required for basic sign-in. **Spoonacular** is optional and unlocks recipe discovery search.
 
 ---
 
@@ -208,40 +208,24 @@ Used for **Discover** search and **Add to inbox**. Calls go through `/api/recipe
 
 4. Without this key, Discover search returns an error from the API route; the rest of the app still works (manual recipes, URL import, planner, lists).
 
+5. **Discover defaults** (optional): In the app, open **More → Discover defaults** to set your usual Spoonacular **diet** filter (including *Any* for omnivore results) and **default search text** (new accounts start with a plant-leaning `vegetables` query; clear the field and save for the widest matches).
+
 ---
 
-## 6. Instacart Developer Platform (`INSTACART_API_KEY`, `INSTACART_API_BASE`) — optional
+## 6. Shopping lists (no retailer API)
 
-Used to create **shopping list** and **recipe** links that open in Instacart so the user can match products and check out there. This is **not** checkout inside Guts.
+Guts does **not** integrate with Instacart or other grocery APIs (those programs are usually partner-only). Shopping is intentionally **export-first**:
 
-### 6.1 Account and API key
+- **Lists** from the planner are grouped by category when possible; on a list page use **Copy list**, **Share** (system share sheet on supported devices), or **Download PDF**.
+- **Recipes** have the same options for the ingredient block only.
 
-1. Read the overview: [Instacart Developer Platform](https://docs.instacart.com/developer_platform_api/).
-2. Sign in to the [Instacart Developer Dashboard](https://docs.instacart.com/developer_platform_api/get_started/api-keys) (linked from Instacart docs) and create an API key.
-3. For **development**, Instacart’s docs use the dev API host. In `.env`:
+No environment variables are required for this flow.
 
-   ```env
-   INSTACART_API_KEY="keys.your-development-key"
-   INSTACART_API_BASE="https://connect.dev.instacart.tools"
-   ```
+### 6.1 Pantry & “cook from home”
 
-4. For **production**, create a **production** key in the dashboard after you meet their checklist, then set:
+After **`npx prisma migrate deploy`**, you get **PantryItem** (pantry / fridge / freezer). From **Stock** in the nav you can add items, set **low-stock** thresholds, log **ate some** (partial use), or **remove / spoiled**. After a grocery run, open a shopping list and use **Add purchases to stock** to merge checked lines into inventory.
 
-   ```env
-   INSTACART_API_BASE="https://connect.instacart.com"
-   ```
-
-   Production keys are subject to Instacart **review** (terms, correct API usage, error handling). See their [approval process](https://docs.instacart.com/developer_platform_api/guide/concepts/launch_activities/approval_process).
-
-### 6.2 Behavior notes
-
-- The app sends ingredient or list line items; Instacart **matches** names (and optional UPCs if you add them later). Results depend on store and inventory.
-- You **cannot** force a specific retailer via the public API; the user’s session and location drive defaults.
-- Generated URLs are **cached** briefly server-side to respect Instacart guidance about not regenerating identical lists unnecessarily.
-
-### 6.3 Without Instacart
-
-Leave `INSTACART_API_KEY` empty. Users can still use **Copy list** and **Download PDF** on shopping list pages.
+**Cook from home** (`/cook`) ranks your saved recipes against stock and calls Spoonacular (`findByIngredients` + biased search) using your staples. **Log cooked** on a recipe also tries to subtract matched ingredients from stock (fuzzy name match; units are best-effort).
 
 ---
 
@@ -251,7 +235,6 @@ Leave `INSTACART_API_KEY` empty. Users can still use **Copy list** and **Downloa
 - [ ] `npx prisma migrate dev` completed successfully
 - [ ] `npm run dev` and sign-in at `/login` works
 - [ ] (Optional) `SPOONACULAR_API_KEY` set and **Discover** search works
-- [ ] (Optional) `INSTACART_API_KEY` + correct `INSTACART_API_BASE`; **Send list to Instacart** / **Continue in Instacart** opens Instacart
 
 ---
 
@@ -268,7 +251,7 @@ Leave `INSTACART_API_KEY` empty. Users can still use **Copy list** and **Downloa
    | `AUTH_URL` | `https://your-deployment.vercel.app` (no trailing slash). |
    | `AUTH_TRUST_HOST` | `true` |
 
-   Optional: Spoonacular / Instacart keys as needed.
+   Optional: Spoonacular key as needed.
 2. Use a **PostgreSQL** `DATABASE_URL` in production (not `file:./dev.db`).
 3. Run migrations once against the production database (from your machine with `DATABASE_URL` set, or in CI):
 
@@ -336,7 +319,6 @@ Google rejects sign-in until that string is **explicitly** allowed on the **same
 | **“Server error” / “problem with the server configuration”** right after choosing a Google account | **If `AUTH_SECRET` is already set:** the failure is often **database** (Prisma adapter cannot create the user/session) or **host/URL** mismatch. Use **`/api/health`** (see **§8** step 5) to confirm the DB round-trip. In **Vercel → Runtime Logs**, look for **`[next-auth]`** lines or Prisma errors on `/api/auth/callback/google`. Set **`AUTH_DEBUG=true`** temporarily, redeploy, reproduce sign-in, then remove **`AUTH_DEBUG`**. Confirm **`AUTH_URL`** matches the hostname you are actually visiting (Production vs Preview). For Neon pooled URLs, add **`&pgbouncer=true`** to **`DATABASE_URL`**. Try a fresh browser profile or incognito (stale `callbackUrl` cookies pointing at localhost can break production). If **`AUTH_SECRET` is missing**, add it for **Production** and redeploy. |
 | Sign-in loops or CSRF | `AUTH_SECRET` set; `AUTH_TRUST_HOST` / `AUTH_URL` correct in production. |
 | Prisma errors on install | Node version (see README); run `npx prisma generate`. |
-| Instacart 401 / 403 | Key type (dev vs prod) matches `INSTACART_API_BASE`; key not expired or revoked. |
 | Spoonacular 402 / limit | Plan quota; app caches searches per user for one hour to reduce calls. |
 
-For Instacart and Spoonacular, refer to their official docs for the latest dashboard URLs and pricing.
+For Spoonacular, refer to their official docs for the latest dashboard URLs and pricing.

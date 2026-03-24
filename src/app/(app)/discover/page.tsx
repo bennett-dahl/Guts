@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { approveInboxItem, rejectInboxItem } from "@/app/actions";
+import { getDiscoverSearchDefaults } from "@/lib/default-diet";
 import { DiscoverSearch } from "./discover-search";
 import type { ParsedRecipe } from "@/lib/recipe-import";
 
@@ -15,19 +16,40 @@ export default async function DiscoverPage() {
     orderBy: { createdAt: "desc" },
   });
 
+  const profile = await prisma.idealDietProfile.findUnique({
+    where: { userId: session.user.id },
+    select: { settings: true },
+  });
+  const discoverDefaults = getDiscoverSearchDefaults(profile?.settings);
+
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold">Discover</h1>
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          Budgeted Spoonacular search (cached on the server). Queue recipes,
-          then approve them into your library.
+          Search Spoonacular’s catalog with filters, then{" "}
+          <strong className="font-medium text-zinc-700 dark:text-zinc-300">
+            add to inbox
+          </strong>{" "}
+          and approve recipes into your library. Default diet and search text
+          are configurable under{" "}
+          <Link
+            href="/more"
+            className="font-medium text-emerald-700 underline dark:text-emerald-400"
+          >
+            More → Discover defaults
+          </Link>
+          . Identical searches are cached about an hour per account to save API
+          points.
         </p>
       </div>
 
-      <section className="space-y-3">
-        <h2 className="font-semibold">Search</h2>
-        <DiscoverSearch />
+      <section className="space-y-4">
+        <h2 className="sr-only">Recipe search</h2>
+        <DiscoverSearch
+          initialDiet={discoverDefaults.diet}
+          initialQuery={discoverDefaults.query}
+        />
       </section>
 
       <section className="space-y-3">
@@ -78,6 +100,19 @@ export default async function DiscoverPage() {
           </ul>
         )}
       </section>
+
+      <p className="text-center text-[11px] text-zinc-400">
+        Recipe search and images via{" "}
+        <a
+          href="https://spoonacular.com/food-api"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-emerald-700 underline dark:text-emerald-500"
+        >
+          Spoonacular
+        </a>
+        .
+      </p>
     </div>
   );
 }

@@ -18,7 +18,7 @@ export default async function HomePage() {
           Eat more plants with less friction
         </h1>
         <p className="mt-4 text-zinc-600 dark:text-zinc-400">
-          Plan simple meals, send lists to Instacart, and nudge toward fiber and
+          Plan simple meals, export shopping lists, and nudge toward fiber and
           diversity — built for phone and tablet.
         </p>
         <Link
@@ -29,7 +29,7 @@ export default async function HomePage() {
         </Link>
         <p className="mt-8 text-xs text-zinc-500">
           Wellness software, not medical advice. Not affiliated with Dr.
-          Will Bulsiewicz or Instacart.
+          Will Bulsiewicz.
         </p>
       </div>
     </div>

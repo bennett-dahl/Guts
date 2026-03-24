@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Guts — meals & grocery",
   description:
-    "Gut-friendly meal planning, recipes, and Instacart handoff. Wellness software, not medical advice.",
+    "Gut-friendly meal planning, recipes, and shopping lists. Wellness software, not medical advice.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

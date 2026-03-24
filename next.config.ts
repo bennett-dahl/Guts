@@ -7,6 +7,15 @@ const allowedDevOrigins = process.env.ALLOWED_DEV_ORIGINS
   : [];
 
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "img.spoonacular.com",
+        pathname: "/**",
+      },
+    ],
+  },
   // Phone/tablet on LAN: set ALLOWED_DEV_ORIGINS to the host shown under "Network:" in `next dev`
   // so HMR and dev assets are not blocked (see terminal warning about webpack-hmr).
   ...(allowedDevOrigins.length > 0 ? { allowedDevOrigins } : {}),

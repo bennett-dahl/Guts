@@ -5,16 +5,12 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { defaultDietSettingsJson } from "@/lib/default-diet";
+import { isValidDiscoverDiet } from "@/lib/spoonacular-filters";
 import { parseStringArray, stringifyStringArray } from "@/lib/json";
 import { guessCategory } from "@/lib/shop-category";
 import { plantsFromIngredientNames } from "@/lib/plants";
 import type { ParsedRecipe } from "@/lib/recipe-import";
 import { importRecipeFromUrl } from "@/lib/recipe-import";
-import {
-  cacheKeyForLineItems,
-  createInstacartProductsLink,
-  type InstacartLineItem,
-} from "@/lib/instacart";
 
 async function requireUserId() {
   const session = await auth();
@@ -42,6 +38,38 @@ export async function completeOnboarding() {
   });
   revalidatePath("/", "layout");
   redirect("/today");
+}
+
+export async function updateDiscoverSearchDefaults(formData: FormData) {
+  const userId = await requireUserId();
+  const diet = String(formData.get("discoverDefaultDiet") ?? "");
+  const queryRaw = String(formData.get("discoverDefaultQuery") ?? "");
+  if (!isValidDiscoverDiet(diet)) {
+    throw new Error("Invalid diet filter");
+  }
+  const query = queryRaw.slice(0, 120).trim();
+
+  await ensureProfile();
+  const profile = await prisma.idealDietProfile.findUnique({
+    where: { userId },
+  });
+  if (!profile) return;
+
+  let obj: Record<string, unknown>;
+  try {
+    obj = JSON.parse(profile.settings) as Record<string, unknown>;
+  } catch {
+    obj = JSON.parse(defaultDietSettingsJson()) as Record<string, unknown>;
+  }
+  obj.discoverDefaultDiet = diet;
+  obj.discoverDefaultQuery = query;
+
+  await prisma.idealDietProfile.update({
+    where: { userId },
+    data: { settings: JSON.stringify(obj) },
+  });
+  revalidatePath("/discover");
+  revalidatePath("/more");
 }
 
 export async function importRecipeFromUrlAction(url: string) {
@@ -303,112 +331,10 @@ export async function logMealCooked(recipeId: string) {
       plants: stringifyStringArray(plants),
     },
   });
+  const { applyPantryDeductionForRecipe } = await import("./pantry-actions");
+  await applyPantryDeductionForRecipe(userId, recipeId);
   revalidatePath("/track");
   revalidatePath("/today");
-}
-
-export async function getInstacartLinkForShoppingList(listId: string) {
-  const userId = await requireUserId();
-  const list = await prisma.shoppingList.findFirst({
-    where: { id: listId, userId },
-    include: { items: { orderBy: { sortOrder: "asc" } } },
-  });
-  if (!list) throw new Error("List not found");
-
-  const lineItems: InstacartLineItem[] = list.items.map((item) => {
-    const measurements =
-      item.quantity != null && item.unit
-        ? [{ quantity: item.quantity, unit: item.unit }]
-        : item.quantity != null
-          ? [{ quantity: item.quantity, unit: "each" as const }]
-          : [{ quantity: 1, unit: "each" as const }];
-    return {
-      name: item.name,
-      display_text: item.name,
-      line_item_measurements: measurements,
-    };
-  });
-
-  const key = cacheKeyForLineItems(list.title, lineItems, "shopping_list");
-  const now = new Date();
-  const cached = await prisma.instacartLinkCache.findUnique({
-    where: { userId_cacheKey: { userId, cacheKey: key } },
-  });
-  if (cached && cached.expiresAt > now) {
-    return cached.url;
-  }
-
-  const url = await createInstacartProductsLink({
-    title: list.title,
-    lineItems,
-    linkType: "shopping_list",
-  });
-
-  const expiresAt = new Date(now.getTime() + 23 * 60 * 60 * 1000);
-  await prisma.instacartLinkCache.upsert({
-    where: { userId_cacheKey: { userId, cacheKey: key } },
-    create: { userId, cacheKey: key, url, expiresAt },
-    update: { url, expiresAt },
-  });
-
-  return url;
-}
-
-export async function getInstacartLinkForRecipe(recipeId: string) {
-  const userId = await requireUserId();
-  const recipe = await prisma.recipe.findFirst({
-    where: { id: recipeId, userId },
-    include: { ingredients: { orderBy: { sortOrder: "asc" } } },
-  });
-  if (!recipe) throw new Error("Recipe not found");
-
-  const lineItems: InstacartLineItem[] = recipe.ingredients.map((ing) => {
-    const measurements =
-      ing.quantity != null && ing.unit
-        ? [{ quantity: ing.quantity, unit: ing.unit }]
-        : ing.quantity != null
-          ? [{ quantity: ing.quantity, unit: "each" as const }]
-          : [{ quantity: 1, unit: "each" as const }];
-    return {
-      name: ing.name,
-      display_text: ing.name,
-      line_item_measurements: measurements,
-    };
-  });
-
-  const key = cacheKeyForLineItems(recipe.title, lineItems, "recipe");
-  const now = new Date();
-  const cached = await prisma.instacartLinkCache.findUnique({
-    where: { userId_cacheKey: { userId, cacheKey: key } },
-  });
-  if (cached && cached.expiresAt > now) {
-    return cached.url;
-  }
-
-  const instructions = recipe.instructions
-    .split(/\n+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  const url = await createInstacartProductsLink({
-    title: recipe.title,
-    lineItems,
-    linkType: "recipe",
-    instructions: instructions.length ? instructions : undefined,
-    imageUrl: recipe.imageUrl ?? undefined,
-    servings: recipe.servings,
-    cookingTimeMin: recipe.activeTimeMin ?? undefined,
-    enablePantryItems: true,
-  });
-
-  const expiresAt = new Date(now.getTime() + 23 * 60 * 60 * 1000);
-  await prisma.instacartLinkCache.upsert({
-    where: { userId_cacheKey: { userId, cacheKey: key } },
-    create: { userId, cacheKey: key, url, expiresAt },
-    update: { url, expiresAt },
-  });
-
-  return url;
 }
 
 export async function approveInboxItem(inboxId: string) {

@@ -18,8 +18,8 @@ export default async function ShopPage() {
       <div>
         <h1 className="text-2xl font-bold">Shopping</h1>
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          Copy or PDF if you are not using Instacart; otherwise send the list
-          straight over.
+          Open a list to copy, share, or download a PDF — grouped by aisle
+          category when you build from the planner.
         </p>
       </div>
       <form
