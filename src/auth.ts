@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 export const { handlers, auth, signIn, signOut } = NextAuth({
   // Required in production; without it Auth.js shows "Server error" / Configuration (see setupInstructions.md)
   secret: process.env.AUTH_SECRET,
+  // JWT avoids DB session lookups on every auth check; fixes proxy/middleware ↔ login redirect loops with Prisma.
+  session: { strategy: "jwt" },
   debug: process.env.AUTH_DEBUG === "true",
   logger: {
     error(error) {
@@ -20,9 +22,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    session({ session, user }) {
-      if (session.user) {
-        session.user.id = user.id;
+    jwt({ token, user }) {
+      if (user) {
+        token.sub = user.id;
+      }
+      return token;
+    },
+    session({ session, token }) {
+      if (session.user && token.sub) {
+        session.user.id = token.sub;
       }
       return session;
     },

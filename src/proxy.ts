@@ -15,6 +15,7 @@ function isPublic(pathname: string) {
   return false;
 }
 
+/** Next.js 16+ Proxy (Node runtime). Replaces deprecated middleware.ts for auth redirects. */
 export default auth((req) => {
   const { pathname } = req.nextUrl;
   if (isPublic(pathname)) return;
