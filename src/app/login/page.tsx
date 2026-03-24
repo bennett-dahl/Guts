@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth, signIn } from "@/auth";
+import { PrivateIpGoogleHint } from "@/components/private-ip-google-hint";
 
 export default async function LoginPage({
   searchParams,
@@ -32,6 +33,7 @@ export default async function LoginPage({
           </code>
           .
         </p>
+        <PrivateIpGoogleHint />
         <form
           className="mt-8"
           action={async () => {

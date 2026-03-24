@@ -4,6 +4,14 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  // Required in production; without it Auth.js shows "Server error" / Configuration (see setupInstructions.md)
+  secret: process.env.AUTH_SECRET,
+  debug: process.env.AUTH_DEBUG === "true",
+  logger: {
+    error(error) {
+      console.error("[next-auth]", error);
+    },
+  },
   adapter: PrismaAdapter(prisma),
   providers: [
     Google({

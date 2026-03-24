@@ -9,6 +9,7 @@ const publicPaths = new Set([
 function isPublic(pathname: string) {
   if (publicPaths.has(pathname)) return true;
   if (pathname.startsWith("/api/auth")) return true;
+  if (pathname === "/api/health") return true;
   if (pathname === "/manifest.json") return true;
   if (pathname.startsWith("/icon")) return true;
   return false;

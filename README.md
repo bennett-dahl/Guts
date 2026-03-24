@@ -18,7 +18,7 @@ This is **wellness software, not medical advice**. It includes onboarding copy i
 ## Stack
 
 - [Next.js](https://nextjs.org) 16 (App Router), React 19, TypeScript, Tailwind CSS 4  
-- [Prisma](https://www.prisma.io) 5 + SQLite locally (see [setupInstructions.md](setupInstructions.md) for PostgreSQL / Neon)  
+- [Prisma](https://www.prisma.io) 5 + **PostgreSQL** (e.g. Neon); see [setupInstructions.md](setupInstructions.md)  
 - [Auth.js](https://authjs.dev) (NextAuth v5 beta) + `@auth/prisma-adapter`  
 - [Spoonacular Food API](https://spoonacular.com/food-api) (optional)  
 - [Instacart Developer Platform](https://docs.instacart.com/developer_platform_api/) (optional)  
@@ -63,7 +63,7 @@ This is **wellness software, not medical advice**. It includes onboarding copy i
 | `npm run start` | Start production server |
 | `npm run lint` | ESLint |
 | `npx prisma migrate dev` | Apply migrations (development) |
-| `npx prisma studio` | Browse SQLite/DB in a GUI |
+| `npx prisma studio` | Browse the database in a GUI |
 
 `postinstall` runs `prisma generate` so the client is available after installs.
 
